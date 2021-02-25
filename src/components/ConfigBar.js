@@ -1,4 +1,4 @@
-import { CircularProgress, IconButton, makeStyles, TextField } from '@material-ui/core';
+import { CircularProgress, Divider, IconButton, makeStyles, MenuItem, TextField, Typography } from '@material-ui/core';
 import Button from '@material-ui/core/Button';
 import React, { useState } from 'react'
 import Flexbox from './Flexbox';
@@ -45,10 +45,21 @@ const useStyles = makeStyles((theme) => ({
     left: 'calc(50% - 12px)',
     top: 'calc(50% - 12px)',
     zIndex: 1,
+  },
+  filtersHeader: {
+    paddingBottom: theme.spacing(1)
+  },
+  filterDropdown: {
+    width: '50%',
+    paddingRight: theme.spacing(2)
+  },
+  divider: {
+    marginBottom: theme.spacing(1),
+    marginTop: theme.spacing(1)
   }
 }))
 
-const SpinnerInput = ({label, onChange, min, max, step, defaultVal, className}) => {
+const SpinnerInput = ({label, onChange, min, max, step, defaultVal, className, style}) => {
   
   const classes = useStyles();
 
@@ -66,6 +77,7 @@ const SpinnerInput = ({label, onChange, min, max, step, defaultVal, className}) 
   return (
   <Flexbox
     className={className}
+    style={style}
   >
     <TextField
       label={label}
@@ -136,8 +148,15 @@ const ConfigBar = ({configData,
 
   const classes = useStyles();
 
+  const [filter, setFilter] = useState("Hash");
+
   return (
   <Flexbox {...otherProps} style={{flexDirection: 'column'}}>
+    <Typography
+      className={classes.filtersHeader}
+      variant='h5'>
+      Settings
+    </Typography>
     <Flexbox 
       className={classes.inputRow}
       style={{flexDirection: 'row'}}>
@@ -196,16 +215,46 @@ const ConfigBar = ({configData,
           size={24}/>}
       </div>
     </Flexbox>
-    <SpinnerInput
-      defaultVal={configData.searchDepth}
-      min={0}
-      max={10}
-      step={1}
-      onChange={v => {
-        configData.searchDepth = v;
-        onDepthChange && onDepthChange(v);
-      }}
-      label='Connections Depth'/>
+    <Divider className={classes.divider}/>
+    <Flexbox style={{flexDirection: 'column'}}>
+      <Typography
+        className={classes.filtersHeader}
+        variant='h5'>
+        Filters
+      </Typography>
+      <SpinnerInput
+        className={classes.filterDropdown}
+        defaultVal={configData.searchDepth}
+        min={0}
+        max={10}
+        step={1}
+        onChange={v => {
+          configData.searchDepth = v;
+          onDepthChange && onDepthChange(v);
+        }}
+        label='Connections Depth'/>
+      <Flexbox>
+        <TextField
+          className={classes.filterDropdown}
+          select
+          value={filter}
+          onCh
+          onChange={(e) => { console.log(e); setFilter(e.target.value)}}
+          label='Filter type'>
+          {['Hash','Node Type', 'Node Label'].map((o, idx) => {
+            return (
+            <MenuItem value={o} key={idx}>
+            {o}
+            </MenuItem>
+            )
+          })}
+        </TextField>
+        <TextField
+          style={{width: '50%'}}
+          label="Value"
+        />
+      </Flexbox>
+    </Flexbox>
   </Flexbox>
   );
 };
