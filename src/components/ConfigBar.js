@@ -238,7 +238,6 @@ const ConfigBar = ({configData,
           className={classes.filterDropdown}
           select
           value={filter}
-          onCh
           onChange={(e) => { console.log(e); setFilter(e.target.value)}}
           label='Filter type'>
           {['Hash','Node Type', 'Node Label'].map((o, idx) => {
