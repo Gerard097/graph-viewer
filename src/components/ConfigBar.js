@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Flexbox from './Flexbox';
 import AddIcon from '@material-ui/icons/Add';
 import RemoveIcon from '@material-ui/icons/Remove';
+import { Autocomplete } from '@material-ui/lab';
 
 const useStyles = makeStyles((theme) => ({
   url: {
@@ -11,6 +12,9 @@ const useStyles = makeStyles((theme) => ({
   },
   code: {
     
+  },
+  autocomplete: {
+    width: 'calc(100%)'
   },
   updateContainer: {
     paddingTop: theme.spacing(1),
@@ -58,6 +62,19 @@ const useStyles = makeStyles((theme) => ({
     marginTop: theme.spacing(1)
   }
 }))
+
+const DocumentTypes = [
+  "dho",
+  "member",
+  "settings",
+  "timeshare",
+  "alert",
+  "assignment",
+  "role",
+  "badge",
+  "period",
+  "payment"
+]
 
 const SpinnerInput = ({label, onChange, min, max, step, defaultVal, className, style}) => {
   
@@ -130,8 +147,50 @@ export class ConfigData {
     this.maxNodes = defaultMaxNodes;
     this.maxEdges = defaultMaxEdges;
     this.code = defaultCode;
+    this.fetchFilters = { byType: DocumentTypes, byHash: [] }
+    this.fetchFilterMode = "and"; //and | or
   }
 }
+
+ConfigData.prototype.fetchFilterNode = function (node) {
+
+  const {byType, byHash} = this.fetchFilters;
+
+  if (byType.length < 1 && 
+      byHash.length < 1) {
+      return true;
+  }
+  
+  //console.log("Filters", byType, byHash);
+
+  if (node.type === "period") {
+    const x = 99;
+  }
+
+  const typeFilter = (type) => type === node.type;
+  const hashFilter = (hash) => hash === node.hash;
+
+  const isAndMode = this.fetchFilterMode === "and";
+
+  const results = [((byType.length < 1 && isAndMode) || byType.some(typeFilter)),
+                   ((byHash.length < 1 && isAndMode) || byHash.some(hashFilter))]
+
+  //console.log(results[0], node.type, byType.length, byType.some(typeFilter));
+
+  let isValid = false;
+
+  if (isAndMode) {
+    isValid = results.every(e => e);
+  }
+  //Is Or mode
+  else {
+    isValid = results.some(e => e);
+  }                    
+
+  return isValid;
+}  
+
+
 
 /**
  * 
@@ -151,12 +210,13 @@ const ConfigBar = ({configData,
   const [filter, setFilter] = useState("Hash");
 
   return (
-  <Flexbox {...otherProps} style={{flexDirection: 'column'}}>
+  <Flexbox {...otherProps} style={{flexDirection: 'column', maxWidth: '400px'}}>
     <Typography
       className={classes.filtersHeader}
       variant='h5'>
       Settings
     </Typography>
+    {/**Settings**/}
     <Flexbox 
       className={classes.inputRow}
       style={{flexDirection: 'row'}}>
@@ -170,6 +230,48 @@ const ConfigBar = ({configData,
         defaultValue={configData.code}
         onChange={({target}) => configData.code = target.value}
         label='Code'/>
+    </Flexbox>
+    <Flexbox 
+      className={classes.inputRow}
+      style={{flexDirection: 'row'}}>
+      <Autocomplete
+        multiple
+        freeSolo
+        defaultValue={DocumentTypes}
+        className={classes.autocomplete}
+        options={DocumentTypes}
+        onChange={(e, value) => configData.fetchFilters.byType = value}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            variant="standard"
+            label="Document Types"
+            placeholder="Type"
+          />
+        )}
+        //onChange={({target}) => configData.url = target.value}
+        />
+    </Flexbox>
+    <Flexbox 
+      className={classes.inputRow}
+      style={{flexDirection: 'row'}}>
+      <Autocomplete
+        id="tags-standard"
+        multiple
+        freeSolo
+        className={classes.autocomplete}
+        options={[]}
+        onChange={(e, value) => configData.fetchFilters.byHash = value}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            variant="standard"
+            label="Document Hashes"
+            placeholder="Hash"
+          />
+        )}
+        //onChange={({target}) => configData.url = target.value}
+        />  
     </Flexbox>
     <Flexbox 
       className={classes.inputRow} 
@@ -215,6 +317,7 @@ const ConfigBar = ({configData,
           size={24}/>}
       </div>
     </Flexbox>
+    {/**Settings**/}
     <Divider className={classes.divider}/>
     <Flexbox style={{flexDirection: 'column'}}>
       <Typography

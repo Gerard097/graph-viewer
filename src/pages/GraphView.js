@@ -211,8 +211,6 @@ class GraphView extends Component
 
           const idx = nodes.length;
 
-          this.byhash[node.hash] = idx;
-
           let label = node.hash.substr(0, 5);
 
           const system = getGroup(node, "system");
@@ -224,7 +222,19 @@ class GraphView extends Component
             if (name) {
               label = name.value[1];
             }
+
+            const type = getContent(system, "type");
+
+            if (type) {
+              node.type = type.value[1];
+            }
           }
+
+          if (!this.config.fetchFilterNode(node)) {
+            return;
+          }
+
+          this.byhash[node.hash] = idx;
 
           node = nameGroups(node);
 
