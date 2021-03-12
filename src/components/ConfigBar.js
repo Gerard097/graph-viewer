@@ -73,7 +73,9 @@ const DocumentTypes = [
   "role",
   "badge",
   "period",
-  "payment"
+  "payment",
+  "vote",
+  "vote.tally"
 ]
 
 const SpinnerInput = ({label, onChange, min, max, step, defaultVal, className, style}) => {
