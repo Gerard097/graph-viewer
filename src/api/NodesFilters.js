@@ -1,3 +1,7 @@
+// import { getContent } from "./DocumentHelpers";
+// import { FilterTypes } from "../components/ConfigBar"
+
+
 export const getEdgesCommingFrom = (graph, from, markedNodes, maxDepth = 2, currentDepth = 1) => {
     
   if (currentDepth > maxDepth) {
@@ -5,9 +9,14 @@ export const getEdgesCommingFrom = (graph, from, markedNodes, maxDepth = 2, curr
   }
 
   const { nodes, edges } = graph.state.graph;
-
+  const { byhash } = graph;
+  
   let outEdges = [];
   let outNodes = [];
+
+  if (!isNodeValid(graph, from)) {
+    return [outEdges, outNodes];
+  }
   
   for (const edge of edges) {
     const { from_node, to_node } = edge.origin;
@@ -16,12 +25,12 @@ export const getEdgesCommingFrom = (graph, from, markedNodes, maxDepth = 2, curr
       
       if (!markedNodes.hasOwnProperty(from_node)) {
         markedNodes[from_node] = true;
-        outNodes.push(nodes[graph.byhash[from_node]])
+        outNodes.push(nodes[byhash[from_node]])
       }
 
       if (!markedNodes.hasOwnProperty(to_node)) {
         markedNodes[to_node] = true;
-        outNodes.push(nodes[graph.byhash[to_node]])
+        outNodes.push(nodes[byhash[to_node]])
       }
 
       let nextLevel = getEdgesGoingTo(graph, to_node, markedNodes, maxDepth, currentDepth + 1);
@@ -46,9 +55,14 @@ export const getEdgesGoingTo = (graph, to, markedNodes, maxDepth = 2, currentDep
   }
 
   const { nodes, edges } = graph.state.graph;
-
+  const { byhash } = graph;
+  
   let outEdges = [];
   let outNodes = [];
+
+  if (!isNodeValid(graph, to)) {
+    return [outEdges, outNodes];
+  }
   
   for (const edge of edges) {
     const { from_node, to_node } = edge.origin;
@@ -57,12 +71,12 @@ export const getEdgesGoingTo = (graph, to, markedNodes, maxDepth = 2, currentDep
       
       if (!markedNodes.hasOwnProperty(from_node)) {
         markedNodes[from_node] = true;
-        outNodes.push(nodes[graph.byhash[from_node]])
+        outNodes.push(nodes[byhash[from_node]])
       }
 
       if (!markedNodes.hasOwnProperty(to_node)) {
         markedNodes[to_node] = true;
-        outNodes.push(nodes[graph.byhash[to_node]])
+        outNodes.push(nodes[byhash[to_node]])
       }
 
       let nextLevel = getEdgesGoingTo(graph, from_node, markedNodes, maxDepth, currentDepth + 1);
@@ -78,4 +92,28 @@ export const getEdgesGoingTo = (graph, to, markedNodes, maxDepth = 2, currentDep
   }
 
   return [outEdges, outNodes];
+}
+
+const isNodeValid = (graph, nodeHash) => {
+
+  // const { config : { showFilters }, byhash } = graph;
+
+  // const nodeData = graph.state.graph.nodes[byhash[nodeHash]].data;
+
+  // let isValid = null;
+
+  // if (showFilters.values) {
+  //   switch(showFilters.type) {
+  //     case FilterTypes.HASH:
+  //       isValid = (node) => {
+  //         getContent(node)
+  //       }
+  //       break;
+  //     default:
+  //       return false;
+  //       break;
+  //   }
+  // }
+
+  return true;
 }

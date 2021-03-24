@@ -1,11 +1,10 @@
 import { Component } from 'react'
-import { get_table, set_url } from '../providers/Table';
 import Graph from 'vis-react'
 import './GraphView.css';
 import ReactJson from 'react-json-view'
 import { getEdgesCommingFrom, getEdgesGoingTo } from '../api/NodesFilters';
 import { getContent, getGroup, nameGroups } from '../api/DocumentHelpers';
-import ConfigBar, { ConfigData } from '../components/ConfigBar';
+import ConfigBar, { ConfigData, FilterTypes } from '../components/ConfigBar';
 import Drawer from '@material-ui/core/Drawer';
 import AppBar from '@material-ui/core/AppBar';
 import IconButton from '@material-ui/core/IconButton'
@@ -14,6 +13,7 @@ import Typography from '@material-ui/core/Typography'
 import SettingsIcon from '@material-ui/icons/Settings';
 import ArrowBackIosIcon from '@material-ui/icons/ArrowBackIos';
 import { withStyles } from '@material-ui/core';
+import { queryAll, queryByHash, queryByType, queryByTypeAndHash } from '../api/DGraphClient';
 
 const styles = theme => { console.log(theme); return {
   drawerHeader: {
@@ -113,6 +113,8 @@ class GraphView extends Component
 
           this.viewID = e.nodes[0];
 
+          console.log(this.viewID)
+
           this.filterNodes(this.config.searchDepth, e.nodes[0], this.viewID, ctrlKey);
           //this.state.network.redraw();
         }
@@ -129,11 +131,11 @@ class GraphView extends Component
 
     if (ctrlKey) {
       const { currentNode, customView, graph } = this.state;
-      const { nodes, edges } = currentNode ? customView : graph;
+      const { nodes, edges } = customView ? customView : graph;
       newEdges = edges;
       newNodes = nodes;
     }
-    else {         
+    else {
 
       let markedNodes = {};
 
@@ -145,10 +147,64 @@ class GraphView extends Component
 
       newEdges = commingEdgesNodes[0].concat(goingEdgesNodes[0]);
       newNodes = commingEdgesNodes[1].concat(goingEdgesNodes[1]);
+
+      if (newNodes.length === 0) {
+        newNodes = [originNodes[viewIdx]]
+      }
     }
 
     //Some bug makes the app crash if I don't set the customView to null first
     this.setState({currentNode: originNodes[viewIdx], customView: null}, () => this.setState({customView: { nodes: newNodes, edges: newEdges }}))
+  }
+
+  onShowFilter = () => {
+
+    const { config : { showFilters } } = this;
+    const { graph, currentNode } = this.state;
+
+    let { nodes, edges } = graph;
+
+    let validator;
+
+    const { type: filterType, values: filterValues } = showFilters;
+
+    console.log(FilterTypes)
+
+    switch(filterType) {
+      case FilterTypes.HASH:
+        validator = ({data}) => filterValues.some((v) => data.hash.includes(v))
+        break;
+      case FilterTypes.NODE_TYPE:
+        validator = ({data}) => {
+          console.log(data)
+          let system = getGroup(data, "system");
+          if (!system) return false;
+          let type = getContent(system, "type");
+          if (!type) return false;
+          return filterValues.some(v => type.includes(v));
+        }
+        break;
+      case FilterTypes.NODE_LABEL:
+        validator = ({data}) => {
+          let system = getGroup(data, "system");
+          if (!system) return false;
+          let label = getContent(system, "node_label");
+          if (!label) return false;
+          console.log("Filtering by label", label, filterValues);
+          return filterValues.some(v => label.includes(v));
+        }
+        break;
+      default:
+        return;
+    }
+
+    let newNodes = nodes.filter(validator);
+
+    let newCurrent = newNodes.find(({data}) => { 
+      return currentNode?.data.hash === data.hash;
+    });
+
+    this.setState({ currentNode: newCurrent, customView: null }, () => this.setState({customView: { nodes: newNodes, edges: edges }}))
   }
 
   getNetwork = data => {
@@ -177,7 +233,7 @@ class GraphView extends Component
 
   loadData = async () => {
 
-    const { url, code, maxNodes, maxEdges } = this.config;
+    const { url, maxNodes, maxEdges } = this.config;
 
     console.log('loading from url', url);
 
@@ -195,87 +251,131 @@ class GraphView extends Component
 
       // const { serverUrl } = this.state.config;
 
-      set_url(url);
-
-      let nextNode;
-
+      //Timeout after 10 seconds
+    
       let nodes = []; 
 
       while (true) {
 
-        let limit = maxNodes - nodes.length;
+        //let limit = maxNodes - nodes.length;
+        //let limit = maxNodes - nodes.length;
+        const { byType, byHash } = this.config.fetchFilters;
 
-        const {more, rows, next_key} = await get_table(code, code, 'documents', limit, nextNode);
+        let res = { data: {} };
+        
+        const types = [" "].concat(byType).reduce((acc, c) => acc = acc + " " + c).trim();
+        const hashes = [" "].concat(byHash).reduce((t, c) => t = t + " " + c).trim();
+
+        if (byType.length > 0 && byHash.length > 0) {
+          res = await queryByTypeAndHash(types, hashes, Math.min(100, maxNodes), nodes.length);
+        }
+        else if (byType.length > 0) {
+          res = await queryByType(types, Math.min(100, maxNodes), nodes.length);
+        }
+        else if (byHash.length > 0) {
+          res = await queryByHash(hashes, nodes.length);
+        }
+        else {
+          res = await queryAll(Math.min(100, maxNodes), nodes.length);
+        }
+
+        let rows = res.data.docs;
+
+        if (!rows || rows.length === 0) {
+          break;
+        }
 
         rows.forEach((node) => {
 
-          const idx = nodes.length;
+          if (nodes.length >= maxNodes) return;
+          
+          let { hash, created_date, creator, content_groups, ...edges } = node;
 
-          let label = node.hash.substr(0, 5);
+          this.byhash[hash] = nodes.length;
+
+          let label = hash.substr(0, 5);
 
           const system = getGroup(node, "system");
 
           if (system) {
-            
             const name = getContent(system, "node_label");
-            
             if (name) {
-              label = name.value[1];
+              label = name.value;
             }
-
-            const type = getContent(system, "type");
-
-            if (type) {
-              node.type = type.value[1];
+            else {
+              const type = getContent(system, "type");
+              if (type) {
+                label = label + " - " + type.value;
+              }
             }
           }
-
-          if (!this.config.fetchFilterNode(node)) {
-            return;
-          }
-
-          this.byhash[node.hash] = idx;
 
           node = nameGroups(node);
 
-          nodes.push({id: idx, label: label, data: node});
+          nodes.push({id: nodes.length, label: label, data: node, edges: edges});
         });
 
-        if (!more || nodes.length >= maxNodes) {
-          break;
-        }
+        if (nodes.length >= maxNodes) break;
 
-        nextNode = next_key;
+        //offset += rows.length;
       }
 
-      let nextEdge;
-      
-      let edges = [];
-      
-      while (true) {
+      let finaledges = [];
 
-        let limit = maxEdges - edges.length;
+      console.log("Total nodes", nodes);
 
-        const { rows, more, next_key } = await get_table(code, code, 'edges', limit, nextEdge)
-
-        rows.forEach(edge => {
-          if (this.byhash.hasOwnProperty(edge.from_node) && 
-              this.byhash.hasOwnProperty(edge.to_node)) {
-            edges.push({from: this.byhash[edge.from_node], 
-              to: this.byhash[edge.to_node], 
-              label: edge.edge_name, 
-              origin: edge});
+      nodes.forEach(({edges, data: {hash}}) => {
+        for (let edgeType in edges) {
+          for (let {hash: tohash} of edges[edgeType]) {
+            if(finaledges.length >= maxEdges) {
+              return;
+            }
+            if (this.byhash.hasOwnProperty(hash) && 
+              this.byhash.hasOwnProperty(tohash)) {
+              finaledges.push({
+                from: this.byhash[hash], 
+                to: this.byhash[tohash], 
+                label: edgeType, 
+                origin: { from_node: hash, to_node: tohash }
+              });
           }
-        });
-
-        if (!more || edges.length >= maxEdges) {
-          break;
         }
+      }});
 
-        nextEdge = next_key;
-      }
+      nodes.forEach(node => delete node['edges'])
 
-      this.setState({ graph: { nodes: nodes, edges: edges }});
+      //let nextEdge;
+      
+      // while (true) {
+
+      //   break;
+
+        //let limit = maxEdges - edges.length;
+        //let limit = 100;
+
+        // rows.forEach(edge => {
+        //   if (this.byhash.hasOwnProperty(edge.from_node) && 
+        //       this.byhash.hasOwnProperty(edge.to_node)) {
+            
+        //     if(edges.length >= maxEdges) {
+        //       return;
+        //     }
+
+        //     edges.push({from: this.byhash[edge.from_node], 
+        //       to: this.byhash[edge.to_node], 
+        //       label: edge.edge_name, 
+        //       origin: edge});
+        //   }
+        // });
+
+        // if (!more || edges.length >= maxEdges) {
+        //   break;
+        // }
+
+        //nextEdge = next_key;
+      //}
+
+      this.setState({ graph: { nodes: nodes, edges: finaledges }});
 
       this.state.network.redraw();
     }
@@ -288,6 +388,8 @@ class GraphView extends Component
   }
 
   componentDidMount() {
+
+    //console.log(buildOptionalMultipleFilter("hash", "abcd"));
 
     window.addEventListener('resize', this.resize);
   }
@@ -346,6 +448,7 @@ class GraphView extends Component
           fetchingData={loadingNodes}
           configData={this.config}
           onUpdate={this.loadData}
+          onFilter={this.onShowFilter}
           onDepthChange={this.depthChange}
         />
       </Drawer>

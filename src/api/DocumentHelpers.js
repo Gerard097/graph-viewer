@@ -1,10 +1,19 @@
 
 export const getContent = (group, label) => {
-  for (const content of group) {
-    if (content.label === label) {
-      return content;
+
+  const { contents, [label]: other } = group;
+
+  if (contents) {
+    for (const content of contents) {
+      if (content.label === label) {
+        return content;
+      }
     }
   }
+  else {
+    return other;
+  }
+
 
   return null;
 }
@@ -12,7 +21,7 @@ export const getContent = (group, label) => {
 export const getGroupLabel = (group) => {
   const content = getContent(group, 'content_group_label');
   if (content) {
-    return content.value[1];
+    return content.value;
   }
 
   return null;
@@ -20,10 +29,17 @@ export const getGroupLabel = (group) => {
 
 
 export const getGroup = (document, groupLabel) => {
-  for (const group of document.content_groups) {
-    if (getGroupLabel(group) === groupLabel) {
-      return group;
+  const { content_groups } = document;
+  if (Array.isArray(content_groups)) {
+    for (const group of content_groups) {
+      if (getGroupLabel(group) === groupLabel) {
+        return group;
+      }
     }
+  }
+  else {
+    const { [groupLabel]: target } = content_groups;
+    return target;
   }
 
   return null;
@@ -35,7 +51,7 @@ export const getGroup = (document, groupLabel) => {
 export const nameItems = (group) => {
   const newGroup = {};
   let repeatedIdx = {};
-  for (const content of group) {
+  for (const content of group.contents) {
     if (content.label !== 'content_group_label') {
       if (newGroup.hasOwnProperty(content.label)) {
 
@@ -46,10 +62,10 @@ export const nameItems = (group) => {
           repeatedIdx[content.label] = 1;
         }
 
-        newGroup[`${content.label}_${repeatedIdx[content.label]}`] = content.value[1];
+        newGroup[`${content.label}_${repeatedIdx[content.label]}`] = content.value;
       }
       else {
-        newGroup[content.label] = content.value[1];
+        newGroup[content.label] = content.value;
       }
     }
   }

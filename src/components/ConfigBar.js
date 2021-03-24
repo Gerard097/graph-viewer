@@ -55,7 +55,8 @@ const useStyles = makeStyles((theme) => ({
   },
   filterDropdown: {
     width: '50%',
-    paddingRight: theme.spacing(2)
+    paddingRight: theme.spacing(2),
+    paddingBottom: theme.spacing(1)
   },
   divider: {
     marginBottom: theme.spacing(1),
@@ -69,6 +70,7 @@ const DocumentTypes = [
   "settings",
   "timeshare",
   "alert",
+  "edit",
   "assignment",
   "role",
   "badge",
@@ -77,6 +79,12 @@ const DocumentTypes = [
   "vote",
   "vote.tally"
 ]
+
+export const FilterTypes = {
+  HASH: 'Hash',
+  NODE_TYPE: 'Node Type', 
+  NODE_LABEL: 'Node Label'
+};
 
 const SpinnerInput = ({label, onChange, min, max, step, defaultVal, className, style}) => {
   
@@ -151,6 +159,7 @@ export class ConfigData {
     this.code = defaultCode;
     this.fetchFilters = { byType: DocumentTypes, byHash: [] }
     this.fetchFilterMode = "and"; //and | or
+    this.showFilters = { type: FilterTypes.HASH, values: [] }
   }
 }
 
@@ -163,12 +172,6 @@ ConfigData.prototype.fetchFilterNode = function (node) {
       return true;
   }
   
-  //console.log("Filters", byType, byHash);
-
-  if (node.type === "period") {
-    const x = 99;
-  }
-
   const typeFilter = (type) => type === node.type;
   const hashFilter = (hash) => hash === node.hash;
 
@@ -201,6 +204,7 @@ ConfigData.prototype.fetchFilterNode = function (node) {
 const ConfigBar = ({configData,
                     isLoadingData,
                     onUpdate, 
+                    onFilter,
                     onDepthChange,
                     onMaxNodesChange,
                     onMaxEdgesChange,
@@ -209,7 +213,7 @@ const ConfigBar = ({configData,
 
   const classes = useStyles();
 
-  const [filter, setFilter] = useState("Hash");
+  const [filter, setFilter] = useState(configData.showFilters.type)
 
   return (
   <Flexbox {...otherProps} style={{flexDirection: 'column', maxWidth: '400px'}}>
@@ -343,9 +347,9 @@ const ConfigBar = ({configData,
           className={classes.filterDropdown}
           select
           value={filter}
-          onChange={(e) => { console.log(e); setFilter(e.target.value)}}
-          label='Filter type'>
-          {['Hash','Node Type', 'Node Label'].map((o, idx) => {
+          onChange={(e) => { setFilter(configData.showFilters.type = e.target.value); }}
+          label='Filter By'>
+          {Object.values(FilterTypes).map((o, idx) => {
             return (
             <MenuItem value={o} key={idx}>
             {o}
@@ -353,10 +357,34 @@ const ConfigBar = ({configData,
             )
           })}
         </TextField>
-        <TextField
-          style={{width: '50%'}}
-          label="Value"
+      </Flexbox>
+      <Flexbox>
+        <Autocomplete
+          multiple
+          freeSolo
+          className={classes.autocomplete}
+          options={[]}
+          onChange={(e, value) => console.log(configData.showFilters.values = value) }
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              variant="standard"
+              label="Filter Values"
+              placeholder="Value"
+            />
+          )}
+        //onChange={({target}) => configData.url = target.value}
         />
+      </Flexbox>
+      <Flexbox style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
+        <div className={classes.updateContainer}>
+          <Button
+            onClick={onFilter}
+            variant="contained" 
+            color='primary'>
+            Filter Nodes
+          </Button>
+        </div>
       </Flexbox>
     </Flexbox>
   </Flexbox>
