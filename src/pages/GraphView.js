@@ -13,7 +13,7 @@ import Typography from '@material-ui/core/Typography'
 import SettingsIcon from '@material-ui/icons/Settings';
 import ArrowBackIosIcon from '@material-ui/icons/ArrowBackIos';
 import { withStyles } from '@material-ui/core';
-import { queryAll, queryByHash, queryByType, queryByTypeAndHash } from '../api/DGraphClient';
+import { changeURL, queryAll, queryByHash, queryByType, queryByTypeAndHash } from '../api/DGraphClient';
 
 const styles = theme => { console.log(theme); return {
   drawerHeader: {
@@ -176,7 +176,6 @@ class GraphView extends Component
         break;
       case FilterTypes.NODE_TYPE:
         validator = ({data}) => {
-          console.log(data)
           let system = getGroup(data, "system");
           if (!system) return false;
           let type = getContent(system, "type");
@@ -190,7 +189,6 @@ class GraphView extends Component
           if (!system) return false;
           let label = getContent(system, "node_label");
           if (!label) return false;
-          console.log("Filtering by label", label, filterValues);
           return filterValues.some(v => label.includes(v));
         }
         break;
@@ -236,6 +234,11 @@ class GraphView extends Component
     const { url, maxNodes, maxEdges } = this.config;
 
     console.log('loading from url', url);
+
+    if (url !== this.lastURL) {
+      changeURL(url);
+      this.lastURL = url;
+    }
 
     this.byhash = {};
 

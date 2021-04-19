@@ -1,8 +1,8 @@
 import * as dgraph from "dgraph-js-http"
 
 // Create a client stub.
-function newClientStub() {
-  return new dgraph.DgraphClientStub("http://graph.hypha.earth:8081");
+function newClientStub(url) {
+  return new dgraph.DgraphClientStub(url);
 }
 
 // Create a client.
@@ -10,7 +10,11 @@ function newClient(clientStub) {
   return new dgraph.DgraphClient(clientStub);
 }
 
-let client = newClient(newClientStub());
+let client;
+
+export const changeURL = (url) => {
+  client = newClient(newClientStub(url));
+}
 
 const getQueryByType = (limit, offset) => `
   query bytype($value: string!){ 
