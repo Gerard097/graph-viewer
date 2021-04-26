@@ -26,7 +26,7 @@ const getQueryByType = (limit, offset) => `
         } 
       } 
     }
-    docs(func: uid(typed), first: ${limit ?? 10}, offset: ${offset ?? 0}){ 
+    docs(func: uid(typed), orderdesc: created_date, first: ${limit ?? 10}, offset: ${offset ?? 0}){ 
        expand(_all_) {
          hash
          contents {
@@ -68,7 +68,7 @@ const getQueryByTypeAndHash = (limit, offset, type, hash) => `
       } 
     } 
   }
-  docs(func: uid(typed, hashed), first: ${limit ?? 10}, offset: ${offset ?? 0}){ 
+  docs(func: uid(hashed, typed), orderdesc: created_date, first: ${limit ?? 10}, offset: ${offset ?? 0}){ 
      expand(_all_) {
        hash
        contents {
@@ -78,7 +78,6 @@ const getQueryByTypeAndHash = (limit, offset, type, hash) => `
   }
 }
 `
-
 const getQueryByHash = (hash, offset) => `
 {
     docs(func: has(hash), offset: ${offset}) @filter(${buildOptionalMultipleFilter("hash", hash)}) {
@@ -91,6 +90,22 @@ const getQueryByHash = (hash, offset) => `
     }
 }
 `
+
+const getQueryByLabel = (label, offset) => `
+{
+
+
+  docs(func: has(hash), offset: ${offset}) {
+    expand(_all_) {
+      hash
+      contents {
+        expand(_all_)
+      }
+    }
+  }
+}
+`
+
 const getAllQuery = (limit, offset) => `
 {
     docs(func: has(hash), offset: ${offset}, first: ${limit}) {

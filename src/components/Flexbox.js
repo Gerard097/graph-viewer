@@ -1,8 +1,8 @@
 import React from 'react'
 
-const Flexbox = ({children, style, ...otherProps}) => {
+const Flexbox = ({children, style, hidden, ...otherProps}) => {
   return (
-  <div {...otherProps} style={{display: 'flex', ...style}}>
+  <div {...otherProps} style={{display: hidden ? 'none' : 'flex', ...style}}>
     {children}
   </div>
   )

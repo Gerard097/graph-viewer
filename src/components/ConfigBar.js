@@ -1,9 +1,10 @@
-import { CircularProgress, Divider, IconButton, makeStyles, MenuItem, TextField, Typography } from '@material-ui/core';
+import { CircularProgress, Divider, IconButton, makeStyles, MenuItem, Tab, Tabs, TextField, Typography } from '@material-ui/core';
 import Button from '@material-ui/core/Button';
 import React, { useState } from 'react'
 import Flexbox from './Flexbox';
 import AddIcon from '@material-ui/icons/Add';
 import RemoveIcon from '@material-ui/icons/Remove';
+import DefaultPanel, { DocumentTypes } from './DefaultPanel';
 import { Autocomplete } from '@material-ui/lab';
 
 const useStyles = makeStyles((theme) => ({
@@ -63,22 +64,6 @@ const useStyles = makeStyles((theme) => ({
     marginTop: theme.spacing(1)
   }
 }))
-
-const DocumentTypes = [
-  "dho",
-  "member",
-  "settings",
-  "timeshare",
-  "alert",
-  "edit",
-  "assignment",
-  "role",
-  "badge",
-  "period",
-  "payment",
-  "vote",
-  "vote.tally"
-]
 
 export const FilterTypes = {
   HASH: 'Hash',
@@ -157,45 +142,11 @@ export class ConfigData {
     this.maxNodes = defaultMaxNodes;
     this.maxEdges = defaultMaxEdges;
     this.code = defaultCode;
-    this.fetchFilters = { byType: DocumentTypes, byHash: [] }
+    this.fetchFilters = { byType: DocumentTypes, byHash: [], byLabel: [] }
     this.fetchFilterMode = "and"; //and | or
     this.showFilters = { type: FilterTypes.HASH, values: [] }
   }
 }
-
-ConfigData.prototype.fetchFilterNode = function (node) {
-
-  const {byType, byHash} = this.fetchFilters;
-
-  if (byType.length < 1 && 
-      byHash.length < 1) {
-      return true;
-  }
-  
-  const typeFilter = (type) => type === node.type;
-  const hashFilter = (hash) => hash === node.hash;
-
-  const isAndMode = this.fetchFilterMode === "and";
-
-  const results = [((byType.length < 1 && isAndMode) || byType.some(typeFilter)),
-                   ((byHash.length < 1 && isAndMode) || byHash.some(hashFilter))]
-
-  //console.log(results[0], node.type, byType.length, byType.some(typeFilter));
-
-  let isValid = false;
-
-  if (isAndMode) {
-    isValid = results.every(e => e);
-  }
-  //Is Or mode
-  else {
-    isValid = results.some(e => e);
-  }                    
-
-  return isValid;
-}  
-
-
 
 /**
  * 
@@ -214,6 +165,8 @@ const ConfigBar = ({configData,
   const classes = useStyles();
 
   const [filter, setFilter] = useState(configData.showFilters.type)
+
+  const [tab, setTab] = useState(0);
 
   return (
   <Flexbox {...otherProps} style={{flexDirection: 'column', maxWidth: '400px'}}>
@@ -237,48 +190,16 @@ const ConfigBar = ({configData,
         onChange={({target}) => configData.code = target.value}
         label='Code'/>
     </Flexbox>
-    <Flexbox 
-      className={classes.inputRow}
-      style={{flexDirection: 'row'}}>
-      <Autocomplete
-        multiple
-        freeSolo
-        defaultValue={DocumentTypes}
-        className={classes.autocomplete}
-        options={DocumentTypes}
-        onChange={(e, value) => configData.fetchFilters.byType = value}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            variant="standard"
-            label="Document Types"
-            placeholder="Type"
-          />
-        )}
-        //onChange={({target}) => configData.url = target.value}
-        />
-    </Flexbox>
-    <Flexbox 
-      className={classes.inputRow}
-      style={{flexDirection: 'row'}}>
-      <Autocomplete
-        id="tags-standard"
-        multiple
-        freeSolo
-        className={classes.autocomplete}
-        options={[]}
-        onChange={(e, value) => configData.fetchFilters.byHash = value}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            variant="standard"
-            label="Document Hashes"
-            placeholder="Hash"
-          />
-        )}
-        //onChange={({target}) => configData.url = target.value}
-        />  
-    </Flexbox>
+    <Tabs value={tab} onChange={(e, v) => setTab(v)} aria-label="simple tabs example">
+      <Tab label="Default"/>
+      {/* <Tab label="Advanced"/> */}
+    </Tabs>
+    <DefaultPanel
+      classes={classes}
+      configData={configData}
+      index={0}
+      tab={tab}
+    />
     <Flexbox 
       className={classes.inputRow} 
       style={{flexDirection: 'row'}}>

@@ -270,16 +270,16 @@ class GraphView extends Component
         const hashes = [" "].concat(byHash).reduce((t, c) => t = t + " " + c).trim();
 
         if (byType.length > 0 && byHash.length > 0) {
-          res = await queryByTypeAndHash(types, hashes, Math.min(100, maxNodes), nodes.length);
+          res = await queryByTypeAndHash(types, hashes, maxNodes, nodes.length);
         }
         else if (byType.length > 0) {
-          res = await queryByType(types, Math.min(100, maxNodes), nodes.length);
+          res = await queryByType(types,  maxNodes, nodes.length);
         }
         else if (byHash.length > 0) {
           res = await queryByHash(hashes, nodes.length);
         }
         else {
-          res = await queryAll(Math.min(100, maxNodes), nodes.length);
+          res = await queryAll(maxNodes, nodes.length);
         }
 
         let rows = res.data.docs;
