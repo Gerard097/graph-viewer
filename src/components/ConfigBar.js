@@ -1,13 +1,16 @@
-import { CircularProgress, Divider, IconButton, makeStyles, MenuItem, TextField, Typography } from '@material-ui/core';
+import { CircularProgress, Divider, IconButton, makeStyles, MenuItem, Tab, Tabs, TextField, Typography } from '@material-ui/core';
 import Button from '@material-ui/core/Button';
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import Flexbox from './Flexbox';
 import AddIcon from '@material-ui/icons/Add';
 import RemoveIcon from '@material-ui/icons/Remove';
+import DefaultPanel, { DocumentTypes } from './DefaultPanel';
+import PeriodsPanel from './PeriodsPanel';
 import { Autocomplete } from '@material-ui/lab';
 
 const useStyles = makeStyles((theme) => ({
   url: {
+    flex: 1,
     paddingRight: theme.spacing(2)
   },
   code: {
@@ -15,6 +18,9 @@ const useStyles = makeStyles((theme) => ({
   },
   autocomplete: {
     width: 'calc(100%)'
+  },
+  autocompleteShared: {
+    
   },
   updateContainer: {
     paddingTop: theme.spacing(1),
@@ -63,22 +69,6 @@ const useStyles = makeStyles((theme) => ({
     marginTop: theme.spacing(1)
   }
 }))
-
-const DocumentTypes = [
-  "dho",
-  "member",
-  "settings",
-  "timeshare",
-  "alert",
-  "edit",
-  "assignment",
-  "role",
-  "badge",
-  "period",
-  "payment",
-  "vote",
-  "vote.tally"
-]
 
 export const FilterTypes = {
   HASH: 'Hash',
@@ -151,51 +141,22 @@ export class ConfigData {
                 defaultDepth, 
                 defaultMaxNodes,
                 defaultMaxEdges,
-                defaultCode }) {
+                }) {
     this.url = defaultURL;
     this.searchDepth = defaultDepth;
     this.maxNodes = defaultMaxNodes;
     this.maxEdges = defaultMaxEdges;
-    this.code = defaultCode;
-    this.fetchFilters = { byType: DocumentTypes, byHash: [] }
+    this.fetchFilters = { byType: DocumentTypes, byHash: [], byLabel: [] }
     this.fetchFilterMode = "and"; //and | or
     this.showFilters = { type: FilterTypes.HASH, values: [] }
   }
 }
 
-ConfigData.prototype.fetchFilterNode = function (node) {
-
-  const {byType, byHash} = this.fetchFilters;
-
-  if (byType.length < 1 && 
-      byHash.length < 1) {
-      return true;
-  }
-  
-  const typeFilter = (type) => type === node.type;
-  const hashFilter = (hash) => hash === node.hash;
-
-  const isAndMode = this.fetchFilterMode === "and";
-
-  const results = [((byType.length < 1 && isAndMode) || byType.some(typeFilter)),
-                   ((byHash.length < 1 && isAndMode) || byHash.some(hashFilter))]
-
-  //console.log(results[0], node.type, byType.length, byType.some(typeFilter));
-
-  let isValid = false;
-
-  if (isAndMode) {
-    isValid = results.every(e => e);
-  }
-  //Is Or mode
-  else {
-    isValid = results.some(e => e);
-  }                    
-
-  return isValid;
-}  
-
-
+export const RemoteServers = [
+  {url: 'https://alpha.tekit.io/', label: 'DHO Main'},
+  {url: 'https://alpha-test.tekit.io/', label: 'DHO Testenv'},
+  {url: 'https://alpha-acct-test.tekit.io/', label: 'Accounting Testenv'},
+];
 
 /**
  * 
@@ -215,6 +176,10 @@ const ConfigBar = ({configData,
 
   const [filter, setFilter] = useState(configData.showFilters.type)
 
+  const [tab, setTab] = useState(0);
+
+  const tabRefs = useRef([null, null])
+
   return (
   <Flexbox {...otherProps} style={{flexDirection: 'column', maxWidth: '400px'}}>
     <Typography
@@ -226,59 +191,61 @@ const ConfigBar = ({configData,
     <Flexbox 
       className={classes.inputRow}
       style={{flexDirection: 'row'}}>
-      <TextField
+      {/* <TextField
         className={classes.url}
         defaultValue={configData.url}
         onChange={({target}) => configData.url = target.value}
-        label='Remote server'/>  
-      <TextField
-        className={classes.code}
-        defaultValue={configData.code}
-        onChange={({target}) => configData.code = target.value}
-        label='Code'/>
-    </Flexbox>
-    <Flexbox 
-      className={classes.inputRow}
-      style={{flexDirection: 'row'}}>
-      <Autocomplete
-        multiple
-        freeSolo
-        defaultValue={DocumentTypes}
-        className={classes.autocomplete}
-        options={DocumentTypes}
-        onChange={(e, value) => configData.fetchFilters.byType = value}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            variant="standard"
-            label="Document Types"
-            placeholder="Type"
-          />
-        )}
-        //onChange={({target}) => configData.url = target.value}
+        label='Remote server'/>   */}
+        <Autocomplete
+          freeSolo
+          defaultValue={`${RemoteServers[0].label} (${RemoteServers[0].url})`}
+          className={classes.url}
+          options={RemoteServers}
+          onChange={(e, value) => {
+       
+            if (value && value.hasOwnProperty('url')) {
+              configData.url = value.url;
+            }
+            else {
+              configData.url = value;
+            }
+          }}
+          getOptionLabel={(option) => {
+            if (option.hasOwnProperty('label')) {
+              return `${option.label} (${option.url})`;
+            }
+
+            return option;
+          }}
+          renderInput={(params) => {
+            return (
+            <TextField
+              {...params}
+              variant="standard"
+              label="Remote server"
+              placeholder="Url"
+            />
+          )}}
         />
     </Flexbox>
-    <Flexbox 
-      className={classes.inputRow}
-      style={{flexDirection: 'row'}}>
-      <Autocomplete
-        id="tags-standard"
-        multiple
-        freeSolo
-        className={classes.autocomplete}
-        options={[]}
-        onChange={(e, value) => configData.fetchFilters.byHash = value}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            variant="standard"
-            label="Document Hashes"
-            placeholder="Hash"
-          />
-        )}
-        //onChange={({target}) => configData.url = target.value}
-        />  
-    </Flexbox>
+    <Tabs value={tab} onChange={(e, v) => setTab(v)} aria-label="simple tabs example">
+      <Tab label="Default"/>
+      <Tab label="Periods"/>
+    </Tabs>
+    <DefaultPanel
+      ref={ref => tabRefs.current[0] = ref}
+      classes={classes}
+      configData={configData}
+      index={0}
+      tab={tab}
+    />
+    <PeriodsPanel
+      ref={ref => tabRefs.current[1] = ref}
+      classes={classes}
+      configData={configData}
+      index={1}
+      tab={tab}
+    />
     <Flexbox 
       className={classes.inputRow} 
       style={{flexDirection: 'row'}}>
@@ -311,7 +278,9 @@ const ConfigBar = ({configData,
         <Button
           style={fetchingData ? {color: 'transparent'} : {}}
           disabled={fetchingData}
-          onClick={onUpdate}
+          onClick={() => {
+            onUpdate(tabRefs.current[tab]);
+          }}
           variant="contained" 
           color='primary'>
           Fetch data

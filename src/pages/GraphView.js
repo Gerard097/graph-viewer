@@ -4,7 +4,7 @@ import './GraphView.css';
 import ReactJson from 'react-json-view'
 import { getEdgesCommingFrom, getEdgesGoingTo } from '../api/NodesFilters';
 import { getContent, getGroup, nameGroups } from '../api/DocumentHelpers';
-import ConfigBar, { ConfigData, FilterTypes } from '../components/ConfigBar';
+import ConfigBar, { ConfigData, FilterTypes, RemoteServers } from '../components/ConfigBar';
 import Drawer from '@material-ui/core/Drawer';
 import AppBar from '@material-ui/core/AppBar';
 import IconButton from '@material-ui/core/IconButton'
@@ -13,7 +13,7 @@ import Typography from '@material-ui/core/Typography'
 import SettingsIcon from '@material-ui/icons/Settings';
 import ArrowBackIosIcon from '@material-ui/icons/ArrowBackIos';
 import { withStyles } from '@material-ui/core';
-import { changeURL, queryAll, queryByHash, queryByType, queryByTypeAndHash } from '../api/DGraphClient';
+import { changeURL } from '../api/DGraphClient';
 
 const styles = theme => { console.log(theme); return {
   drawerHeader: {
@@ -91,8 +91,7 @@ class GraphView extends Component
       defaultMaxNodes: 100,
       defaultMaxEdges: 1000,
       defaultDepth: 2,
-      defaultCode: process.env.REACT_APP_DEFAULT_CODE,
-      defaultURL: process.env.REACT_APP_DEFAULT_SERVER,
+      defaultURL: RemoteServers[0].url,
     });
 
     this.byhash = {};
@@ -130,7 +129,7 @@ class GraphView extends Component
     let newNodes;
 
     if (ctrlKey) {
-      const { currentNode, customView, graph } = this.state;
+      const { customView, graph } = this.state;
       const { nodes, edges } = customView ? customView : graph;
       newEdges = edges;
       newNodes = nodes;
@@ -229,7 +228,7 @@ class GraphView extends Component
     }
   }
 
-  loadData = async () => {
+  loadData = async (loader) => {
 
     const { url, maxNodes, maxEdges } = this.config;
 
@@ -252,41 +251,17 @@ class GraphView extends Component
 
     try {
 
-      // const { serverUrl } = this.state.config;
-
-      //Timeout after 10 seconds
-    
       let nodes = []; 
 
       while (true) {
 
-        //let limit = maxNodes - nodes.length;
-        //let limit = maxNodes - nodes.length;
-        const { byType, byHash } = this.config.fetchFilters;
-
-        let res = { data: {} };
-        
-        const types = [" "].concat(byType).reduce((acc, c) => acc = acc + " " + c).trim();
-        const hashes = [" "].concat(byHash).reduce((t, c) => t = t + " " + c).trim();
-
-        if (byType.length > 0 && byHash.length > 0) {
-          res = await queryByTypeAndHash(types, hashes, Math.min(100, maxNodes), nodes.length);
-        }
-        else if (byType.length > 0) {
-          res = await queryByType(types, Math.min(100, maxNodes), nodes.length);
-        }
-        else if (byHash.length > 0) {
-          res = await queryByHash(hashes, nodes.length);
-        }
-        else {
-          res = await queryAll(Math.min(100, maxNodes), nodes.length);
-        }
-
-        let rows = res.data.docs;
+        let rows = await loader.getRows(maxNodes, nodes.length);
 
         if (!rows || rows.length === 0) {
           break;
         }
+
+        console.log(rows);
 
         rows.forEach((node) => {
 
@@ -320,12 +295,9 @@ class GraphView extends Component
 
         if (nodes.length >= maxNodes) break;
 
-        //offset += rows.length;
       }
 
       let finaledges = [];
-
-      console.log("Total nodes", nodes);
 
       nodes.forEach(({edges, data: {hash}}) => {
         for (let edgeType in edges) {
@@ -346,37 +318,6 @@ class GraphView extends Component
       }});
 
       nodes.forEach(node => delete node['edges'])
-
-      //let nextEdge;
-      
-      // while (true) {
-
-      //   break;
-
-        //let limit = maxEdges - edges.length;
-        //let limit = 100;
-
-        // rows.forEach(edge => {
-        //   if (this.byhash.hasOwnProperty(edge.from_node) && 
-        //       this.byhash.hasOwnProperty(edge.to_node)) {
-            
-        //     if(edges.length >= maxEdges) {
-        //       return;
-        //     }
-
-        //     edges.push({from: this.byhash[edge.from_node], 
-        //       to: this.byhash[edge.to_node], 
-        //       label: edge.edge_name, 
-        //       origin: edge});
-        //   }
-        // });
-
-        // if (!more || edges.length >= maxEdges) {
-        //   break;
-        // }
-
-        //nextEdge = next_key;
-      //}
 
       this.setState({ graph: { nodes: nodes, edges: finaledges }});
 

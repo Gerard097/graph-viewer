@@ -5,6 +5,8 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import GraphView from './pages/GraphView';
 import reportWebVitals from './reportWebVitals';
+import DateFnsUtils from '@date-io/date-fns';
+import { MuiPickersUtilsProvider } from '@material-ui/pickers'
 
 const theme = createMuiTheme({
   palette: {
@@ -17,7 +19,9 @@ const theme = createMuiTheme({
 
 ReactDOM.render(
   <ThemeProvider theme={theme}>
-    <GraphView/>
+    <MuiPickersUtilsProvider utils={DateFnsUtils}>
+      <GraphView/>
+    </MuiPickersUtilsProvider>
   </ThemeProvider>,
   document.getElementById('root')
 );
