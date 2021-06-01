@@ -148,3 +148,10 @@ export const queryAll = async (limit, offset) => {
                           .query(query);
   return res;
 }
+
+export const customQuery = async (query) => {
+  const res = await client.newTxn({ readOnly: true })
+                          .query(query);
+
+  return res;
+}

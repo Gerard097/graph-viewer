@@ -1,14 +1,16 @@
 import { CircularProgress, Divider, IconButton, makeStyles, MenuItem, Tab, Tabs, TextField, Typography } from '@material-ui/core';
 import Button from '@material-ui/core/Button';
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import Flexbox from './Flexbox';
 import AddIcon from '@material-ui/icons/Add';
 import RemoveIcon from '@material-ui/icons/Remove';
 import DefaultPanel, { DocumentTypes } from './DefaultPanel';
+import PeriodsPanel from './PeriodsPanel';
 import { Autocomplete } from '@material-ui/lab';
 
 const useStyles = makeStyles((theme) => ({
   url: {
+    flex: 1,
     paddingRight: theme.spacing(2)
   },
   code: {
@@ -16,6 +18,9 @@ const useStyles = makeStyles((theme) => ({
   },
   autocomplete: {
     width: 'calc(100%)'
+  },
+  autocompleteShared: {
+    
   },
   updateContainer: {
     paddingTop: theme.spacing(1),
@@ -136,17 +141,22 @@ export class ConfigData {
                 defaultDepth, 
                 defaultMaxNodes,
                 defaultMaxEdges,
-                defaultCode }) {
+                }) {
     this.url = defaultURL;
     this.searchDepth = defaultDepth;
     this.maxNodes = defaultMaxNodes;
     this.maxEdges = defaultMaxEdges;
-    this.code = defaultCode;
     this.fetchFilters = { byType: DocumentTypes, byHash: [], byLabel: [] }
     this.fetchFilterMode = "and"; //and | or
     this.showFilters = { type: FilterTypes.HASH, values: [] }
   }
 }
+
+export const RemoteServers = [
+  {url: 'https://alpha.tekit.io/', label: 'DHO Main'},
+  {url: 'https://alpha-test.tekit.io/', label: 'DHO Testenv'},
+  {url: 'https://alpha-acct-test.tekit.io/', label: 'Accounting Testenv'},
+];
 
 /**
  * 
@@ -168,6 +178,8 @@ const ConfigBar = ({configData,
 
   const [tab, setTab] = useState(0);
 
+  const tabRefs = useRef([null, null])
+
   return (
   <Flexbox {...otherProps} style={{flexDirection: 'column', maxWidth: '400px'}}>
     <Typography
@@ -179,25 +191,59 @@ const ConfigBar = ({configData,
     <Flexbox 
       className={classes.inputRow}
       style={{flexDirection: 'row'}}>
-      <TextField
+      {/* <TextField
         className={classes.url}
         defaultValue={configData.url}
         onChange={({target}) => configData.url = target.value}
-        label='Remote server'/>  
-      <TextField
-        className={classes.code}
-        defaultValue={configData.code}
-        onChange={({target}) => configData.code = target.value}
-        label='Code'/>
+        label='Remote server'/>   */}
+        <Autocomplete
+          freeSolo
+          defaultValue={`${RemoteServers[0].label} (${RemoteServers[0].url})`}
+          className={classes.url}
+          options={RemoteServers}
+          onChange={(e, value) => {
+       
+            if (value && value.hasOwnProperty('url')) {
+              configData.url = value.url;
+            }
+            else {
+              configData.url = value;
+            }
+          }}
+          getOptionLabel={(option) => {
+            if (option.hasOwnProperty('label')) {
+              return `${option.label} (${option.url})`;
+            }
+
+            return option;
+          }}
+          renderInput={(params) => {
+            return (
+            <TextField
+              {...params}
+              variant="standard"
+              label="Remote server"
+              placeholder="Url"
+            />
+          )}}
+        />
     </Flexbox>
     <Tabs value={tab} onChange={(e, v) => setTab(v)} aria-label="simple tabs example">
       <Tab label="Default"/>
-      {/* <Tab label="Advanced"/> */}
+      <Tab label="Periods"/>
     </Tabs>
     <DefaultPanel
+      ref={ref => tabRefs.current[0] = ref}
       classes={classes}
       configData={configData}
       index={0}
+      tab={tab}
+    />
+    <PeriodsPanel
+      ref={ref => tabRefs.current[1] = ref}
+      classes={classes}
+      configData={configData}
+      index={1}
       tab={tab}
     />
     <Flexbox 
@@ -232,7 +278,9 @@ const ConfigBar = ({configData,
         <Button
           style={fetchingData ? {color: 'transparent'} : {}}
           disabled={fetchingData}
-          onClick={onUpdate}
+          onClick={() => {
+            onUpdate(tabRefs.current[tab]);
+          }}
           variant="contained" 
           color='primary'>
           Fetch data
