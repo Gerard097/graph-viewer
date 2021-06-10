@@ -269,6 +269,9 @@ class GraphView extends Component
           
           let { hash, created_date, creator, content_groups, ...edges } = node;
 
+          //To avoid repeated nodes
+          if (this.byhash.hasOwnProperty(hash)) return;
+
           this.byhash[hash] = nodes.length;
 
           let label = hash.substr(0, 5);

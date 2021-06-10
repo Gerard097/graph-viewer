@@ -7,6 +7,7 @@ import RemoveIcon from '@material-ui/icons/Remove';
 import DefaultPanel, { DocumentTypes } from './DefaultPanel';
 import PeriodsPanel from './PeriodsPanel';
 import { Autocomplete } from '@material-ui/lab';
+import MembersPanel from './MemberPanel';
 
 const useStyles = makeStyles((theme) => ({
   url: {
@@ -178,7 +179,7 @@ const ConfigBar = ({configData,
 
   const [tab, setTab] = useState(0);
 
-  const tabRefs = useRef([null, null])
+  const tabRefs = useRef([null, null, null])
 
   return (
   <Flexbox {...otherProps} style={{flexDirection: 'column', maxWidth: '400px'}}>
@@ -231,6 +232,7 @@ const ConfigBar = ({configData,
     <Tabs value={tab} onChange={(e, v) => setTab(v)} aria-label="simple tabs example">
       <Tab label="Default"/>
       <Tab label="Periods"/>
+      <Tab label="Members & Docs"/>
     </Tabs>
     <DefaultPanel
       ref={ref => tabRefs.current[0] = ref}
@@ -244,6 +246,13 @@ const ConfigBar = ({configData,
       classes={classes}
       configData={configData}
       index={1}
+      tab={tab}
+    />
+    <MembersPanel
+      ref={ref => tabRefs.current[2] = ref}
+      classes={classes}
+      configData={configData}
+      index={2}
       tab={tab}
     />
     <Flexbox 
