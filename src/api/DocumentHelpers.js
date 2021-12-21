@@ -62,7 +62,7 @@ export const nameItems = (group) => {
 //parent item in JSON or use a default group_N name
 export const nameGroups = (node) => {
   
-  let newNode = { creator: node.creator, date: node.created_date, hash: node.hash, content_groups: {} };
+  let newNode = { native_id: node.id, creator: node.creator, date: node.created_date, hash: node.hash, content_groups: {} };
   //Iterate groups
   for (let i = 0; i < node.content_groups.length; ++i) {
     const groupLabel = getGroupLabel(node.content_groups[i]);

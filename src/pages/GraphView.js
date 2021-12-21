@@ -234,7 +234,7 @@ class GraphView extends Component
             return;
           }
 
-          this.byhash[node.hash] = idx;
+          this.byhash[node.id] = idx;
 
           node = nameGroups(node);
 
