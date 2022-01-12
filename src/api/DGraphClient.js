@@ -16,24 +16,13 @@ export const changeURL = (url) => {
   client = newClient(newClientStub(url));
 }
 
-const getQueryByType = (limit, offset) => `
-  query bytype($value: string!){ 
-    typed as var(func: has(hash)) @cascade { 
-      content_groups { 
-        contents  @filter(eq(label,"type") and anyofterms(value, $value)){ 
-          label 
-          value 
-        } 
-      } 
-    }
-    docs(func: uid(typed), orderdesc: created_date, first: ${limit ?? 10}, offset: ${offset ?? 0}){ 
+const getQueryByType = (types, limit, offset) => `
+  query bytype { 
+    docs(func: type(Document), orderdesc: Document.createdDate, first: ${limit ?? 10}, offset: ${offset ?? 0}) @filter(${buildOptionalMultipleFilter("Document.type", types)}) { 
        expand(_all_) {
-         hash
-         contents {
-           expand(_all_)
-         }
+         hash: Document.hash
        }
-    } 
+    }
   }
 `
 
@@ -52,37 +41,18 @@ export const buildOptionalMultipleFilter = (predicate, options) => {
 
 const getQueryByTypeAndHash = (limit, offset, type, hash) => `
 { 
-  hashed as var(func: has(hash)) @filter(${buildOptionalMultipleFilter("hash", hash)}) {
-    expand(_all_) {
-      hash
-      contents {
-        expand(_all_)
-      }
-    }
-  }
-  typed as var(func: has(hash)) @cascade { 
-    content_groups { 
-      contents  @filter(eq(label,"type") and anyofterms(value, "${type}")){ 
-        label 
-        value 
-      } 
-    } 
-  }
-  docs(func: uid(hashed, typed), orderdesc: created_date, first: ${limit ?? 10}, offset: ${offset ?? 0}){ 
+  docs(func: type(Document), orderdesc: Document.createdDate, first: ${limit ?? 10}, offset: ${offset ?? 0}) @filter(${buildOptionalMultipleFilter("Document.type", type)} or ${buildOptionalMultipleFilter("Document.hash", hash)}) {  
      expand(_all_) {
-       hash
-       contents {
-         expand(_all_)
-       }
+       hash: Document.hash
      }
   }
 }
 `
 const getQueryByHash = (hash, offset) => `
 {
-    docs(func: has(hash), offset: ${offset}) @filter(${buildOptionalMultipleFilter("hash", hash)}) {
+    docs(func: type(Document), offset: ${offset}) @filter(${buildOptionalMultipleFilter("Document.hash", hash)}) {
       expand(_all_) {
-        hash
+        hash: Document.hash
         contents {
           expand(_all_)
         }
@@ -95,9 +65,9 @@ const getQueryByLabel = (label, offset) => `
 {
 
 
-  docs(func: has(hash), offset: ${offset}) {
+  docs(func: type(Document), offset: ${offset}) {
     expand(_all_) {
-      hash
+      hash: Document.hash
       contents {
         expand(_all_)
       }
@@ -108,9 +78,9 @@ const getQueryByLabel = (label, offset) => `
 
 const getAllQuery = (limit, offset) => `
 {
-    docs(func: has(hash), offset: ${offset}, first: ${limit}) {
+    docs(func: type(Document), offset: ${offset}, first: ${limit}) {
       expand(_all_) {
-        hash
+        hash: Document.hash
         contents {
           expand(_all_)
         }
@@ -120,10 +90,9 @@ const getAllQuery = (limit, offset) => `
 `
 
 export const queryByType = async (type, limit, offset) => {
-  
+  console.log("types", type, );
   const res = await client.newTxn({ readOnly: true })
-                          .queryWithVars(getQueryByType(limit, offset), 
-                                         { "$value": type });
+                          .query(getQueryByType(type, limit, offset));
   return res;
 }
 

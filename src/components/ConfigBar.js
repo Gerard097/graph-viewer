@@ -154,6 +154,7 @@ export class ConfigData {
 }
 
 export const RemoteServers = [
+  {url: 'https://alpha-stt.tekit.io/', label: 'Multi-tenant DHO'},
   {url: 'https://alpha.tekit.io/', label: 'DHO Main'},
   {url: 'https://alpha-test.tekit.io/', label: 'DHO Testenv'},
   {url: 'https://alpha-acct-test.tekit.io/', label: 'Accounting Testenv'},

@@ -249,6 +249,8 @@ class GraphView extends Component
       currentNode: undefined 
     });
 
+    const keepEdges = false;
+
     try {
 
       let nodes = []; 
@@ -263,11 +265,32 @@ class GraphView extends Component
 
         console.log(rows);
 
+        const renameMap = {
+          "Document.hash": "hash", 
+        };
+        
         rows.forEach((node) => {
 
           if (nodes.length >= maxNodes) return;
+
+          for (let key in renameMap) {
+            if (node.hasOwnProperty(key)) {
+              const value = node[key];
+              delete node[key];
+              node[renameMap[key]] = value;
+            }
+          }
+
+          for (let key in node) {
+            if (key.includes(".")) {
+              let w = key.split(".")[1];
+              let val = node[key];
+              delete node[key];
+              node[w] = val;
+            }
+          }
           
-          let { hash, created_date, creator, content_groups, ...edges } = node;
+          let { hash } = node;
 
           //To avoid repeated nodes
           if (this.byhash.hasOwnProperty(hash)) return;
@@ -276,22 +299,32 @@ class GraphView extends Component
 
           let label = hash.substr(0, 5);
 
-          const system = getGroup(node, "system");
-
-          if (system) {
-            const name = getContent(system, "node_label");
-            if (name) {
-              label = name.value;
-            }
-            else {
-              const type = getContent(system, "type");
-              if (type) {
-                label = label + " - " + type.value;
-              }
-            }
+          if (node.hasOwnProperty("system_nodeLabel_s")) {
+            label = node["system_nodeLabel_s"];
+          }
+          else if (node.hasOwnProperty("system_nodeLabel_n")) {
+            label = node["system_nodeLabel_n"];
           }
 
-          node = nameGroups(node);
+          let edges = {};
+
+          //Used to sort properties alphabetically
+          let props = [];
+
+          for (let key in node) {
+            if (Array.isArray(node[key])) {
+              edges[key] = node[key].concat([]);
+            }
+            else {
+              props.push([key, node[key]]);
+            }
+
+            delete node[key];
+          }
+
+          props.sort();
+
+          props.forEach(value => node[value[0]] = value[1])
 
           nodes.push({id: nodes.length, label: label, data: node, edges: edges});
         });

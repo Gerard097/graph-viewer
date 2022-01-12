@@ -7,18 +7,20 @@ import TabPanel from "./TabPanel";
 import { queryAll, queryByHash, queryByType, queryByTypeAndHash } from '../api/DGraphClient';
 
 export const DocumentTypes = [
-  "dho",
-  "member",
-  "settings",
-  "timeshare",
-  "alert",
-  "assignment",
-  "role",
-  "badge",
-  "period",
-  "payment",
-  "vote",
-  "vote.tally"
+  "Dho",
+  "Dao",
+  "Member",
+  "Settings",
+  "Timeshare",
+  "Alert",
+  "Assignment",
+  "Payout",
+  "Role",
+  "Badge",
+  "Period",
+  "Payment",
+  "Vote",
+  "VoteTally"
 ]
 
 const Panel = React.forwardRef(({index, tab, classes, configData}, ref) => {

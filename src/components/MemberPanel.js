@@ -7,31 +7,21 @@ import { customQuery } from "../api/DGraphClient";
 
 const getMemberAndConnectios = (members, hashes, maxNodes, offset) => `
 {
-  hashed as var(func: has(hash)) @filter(eq(hash, [${["\"\""].concat(hashes).reduce((acc, next)=>acc+","+next)}])) {
+  hashed as var(func: type(Document)) @filter(eq(Document.hash, [${["\"\""].concat(hashes).reduce((acc, next)=>acc+","+next)}])) {
     expand(_all_) {
-      hash
-      contents {
-        expand(_all_)
-      }
+      hash: Document.hash
     }
   }
 
-  var (func: has(member)) @cascade {
-    mem as member {
-      content_groups {
-        contents @filter(eq(label, "member") and eq(value, [${["\"\""].concat(members).reduce((acc, next)=>acc+","+next)}])) {
-					label
-        }
-      }
+  mem as var (func: type(Member)) @filter(eq(Member.details_member_n, [${["\"\""].concat(members).reduce((acc, next)=>acc+","+next)}])) {
+    expand(_all_) {
+      hash: Document.hash
     }
   }
 
   docs(func: uid(hashed, mem), first: ${maxNodes}, offset: ${offset}) {
     expand(_all_) {
-      hash
-      contents {
-        expand(_all_)
-      }
+      hash: Document.hash
     }
   }
 }
@@ -39,12 +29,9 @@ const getMemberAndConnectios = (members, hashes, maxNodes, offset) => `
 
 const getQueryByHash = (hashes, offset) => `
 {
-    docs(func: has(hash), offset: ${offset}) @filter(eq(hash, [${["\"\""].concat(hashes).reduce((acc, next)=>acc+","+next)}])) {
+    docs(func: type(Document), offset: ${offset}) @filter(eq(Document.hash, [${["\"\""].concat(hashes).reduce((acc, next)=>acc+","+next)}])) {
       expand(_all_) {
-        hash
-        contents {
-          expand(_all_)
-        }
+        hash: Document.hash
       }
     }
 }
@@ -83,7 +70,7 @@ const MembersPanel = React.forwardRef(({index, tab, classes, configData}, ref) =
         loadedHashes.push(node.hash);
 
         for (let key in node) {
-          if (['creator', 'hash', 'created_date', 'content_groups'].find(v => v === key) === undefined) {
+          if (Array.isArray(node[key])) {
             const connections = node[key];
             if (remainingNodes > toLoadHashes.length &&
                 ignoredTypes.find(v => v === key) === undefined) {

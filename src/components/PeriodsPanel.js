@@ -37,39 +37,25 @@ const NullDatePicker = ({label, value, onChange}) => {
 
 const getPeriodsQuery = (startPeriod, endPeriod, hashes, maxNodes, offset) => `
 {
-  hashed as var(func: has(hash)) @filter(eq(hash, [${["\"\""].concat(hashes).reduce((acc, next)=>acc+","+next)}])) {
+  hashed as var(func: type(Document)) @filter(eq(Document.hash, [${["\"\""].concat(hashes).reduce((acc, next)=>acc+","+next)}])) {
     expand(_all_) {
-      hash
-      contents {
-        expand(_all_)
-      }
+      hash: Document.hash
     }
   }
 
-  periods as var(func: type(Document)) @cascade {
-    content_groups {
-      contents @filter(eq(label, "type") and 
-                       eq(value, "period")) {
-        
-      }
-    }
+  periods as var(func: type(Document)) @filter(eq(Document.type, Period))
+  {
+    Document.hash
   }
 
-  filterByDate as var(func: uid(periods)) ${startPeriod || endPeriod ? '@cascade' : ''} {
-    content_groups {
-      contents ${(startPeriod || endPeriod) ? `@filter ( 
-        ${startPeriod ? `ge(time_value, "${startPeriod.toISOString()}") and` : ''}
-        ${endPeriod ? `le(time_value, "${endPeriod.toISOString()}") and` : ''}
-      eq(label, "start_time"))`: ''} {}
-    }
+  filterByDate as var(func: uid(periods)) ${(startPeriod || endPeriod) ? `@filter ( 
+    ${startPeriod ? `ge(Period.details_startTime_t, "${startPeriod.toISOString()}")` : ''}
+    ${endPeriod ? `${startPeriod ? 'and' : ''} le(Period.details_startTime_t, "${endPeriod.toISOString()}")` : ''})`: ''} {
   }
-
+  
   docs(func: uid(hashed,filterByDate), first: ${maxNodes}, offset: ${offset}) {
     expand(_all_) {
-      hash
-      contents {
-        expand(_all_)
-      }
+      hash: Document.hash
     }
   }
 }
